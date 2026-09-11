@@ -1,0 +1,34 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE settings
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# NuGet packages
+*.nupkg
+packages/
+*.snupkg
+
+# Publish outputs
+wwwroot/dist/
+wwwroot/node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
