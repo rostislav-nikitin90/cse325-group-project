@@ -1,9 +1,9 @@
 # CSE 325 Group Project
 
 ## Team Members
-- Christian Ifeanyichukwu Ahanonu — [christian-ahanonu]()
-- Francis Happy — [Francis-2008-happy]()
-- Praise Enato
+- Christian Ifeanyichukwu Ahanonu — [christian-ahanonu](https://github.com/christian-ahanonu)
+- Francis Happy — [Francis-2008-happy](https://github.com/francis-2008-happy)
+- Praise Enato — [Praise-Enato](https://github.com/Praise-Enato)
 - Rostislav Mikhaylovich Nikitin — [rostislav-nikitin90](https://github.com/rostislav-nikitin90)
 
 ## Project Overview
