@@ -1,4 +1,6 @@
 using cse325_group_project.Components;
+using cse325_group_project.Data;
+using cse325_group_project.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,7 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Data and Authentication services
+builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

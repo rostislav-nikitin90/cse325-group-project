@@ -32,3 +32,11 @@ wwwroot/node_modules/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Context files
+context/
+
+# Secrets and local configurations
+appsettings.secrets.json
+appsettings.local.json
+appsettings.*.local.json
