@@ -9,9 +9,12 @@
     <button class="btn btn-primary" @onclick="OpenCreateAccountModal"> 
         Create Account 
     </button>
-    <button class="btn btn-secondary" @onclick="OpenEditAccountModal">
-        Edit Account
-    </button>
+    @* Only logged in users can edit their account *@
+    <AuthorizeView>
+        <button class="btn btn-secondary" @onclick="OpenEditAccountModal">
+            Edit Account
+        </button>
+    </AuthorizeView>
 </div>
 
 @if (showCreateAccountModal)

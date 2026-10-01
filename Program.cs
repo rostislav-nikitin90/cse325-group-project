@@ -1,3 +1,7 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using cse325_group_project.Components;
 using cse325_group_project.Data;
 using cse325_group_project.Services;
@@ -13,6 +17,12 @@ builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Login cookie: remembers who is logged in
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+
 var app = builder.Build();
 
 
@@ -26,11 +36,43 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// The login form on the home page sends the email and password here
+app.MapPost("/login", async ([FromForm] string email, [FromForm] string password, IAuthService authService, HttpContext context) =>
+{
+    var user = await authService.AuthenticateAsync(email, password);
+
+    // Wrong email or password: go back to the home page and show the error
+    if (user == null)
+    {
+        return Results.Redirect("/?loginError=true");
+    }
+
+    // Save the user's name and email in the login cookie
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName),
+        new Claim(ClaimTypes.Email, user.Email)
+    };
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await context.SignInAsync(new ClaimsPrincipal(identity));
+
+    return Results.Redirect("/directory");
+});
+
+// The Logout button sends the user here, and the login cookie is removed
+app.MapPost("/logout", async (HttpContext context) =>
+{
+    await context.SignOutAsync();
+    return Results.Redirect("/");
+});
 
 
 // --- Quick Database & Auth Connection Test ---

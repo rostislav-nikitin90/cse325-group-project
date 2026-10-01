@@ -7,50 +7,80 @@
 
 <p>Welcome to the Employee Management System.</p>
 
+@* Login opens the pop-up, Sign Up goes to the HR Profile page *@
 <div>
     <button class="btn btn-primary" @onclick="OpenLogin">Login</button>
     <a class="btn btn-secondary" href="hr-profile">Sign Up</a>
 </div>
 
+@* Login pop-up, only shown when showLogin is true *@
 @if (showLogin)
 {
+    @* Dark background behind the pop-up *@
     <div class="modal-backdrop show"></div>
     <div class="modal d-block">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title fs-5">Login</h2>
-                    <button class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="loginEmail" class="form-label">Email</label>
-                        <input id="loginEmail" type="email" class="form-control" />
+                @* Sends the email and password to /login in Program.cs *@
+                <form method="post" action="login">
+                    @* Hidden security code so the server knows the form came from our site *@
+                    <AntiforgeryToken />
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5">Login</h2>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
                     </div>
-                    <div class="mb-3">
-                        <label for="loginPassword" class="form-label">Password</label>
-                        <input id="loginPassword" type="password" class="form-control" />
+                    <div class="modal-body">
+                        @* Only shown after a failed login *@
+                        @if (LoginError)
+                        {
+                            <div class="alert alert-danger">Wrong email or password.</div>
+                        }
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input id="loginEmail" name="email" type="email" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input id="loginPassword" name="password" type="password" class="form-control" required />
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseModal">Close</button>
-                    <button class="btn btn-primary">Login</button>
-                </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 }
 
 @code {
+    // Reads ?loginError=true from the address bar
+    [SupplyParameterFromQuery]
+    private bool LoginError { get; set; }
+
+    // true = pop-up is showing, false = pop-up is hidden
     private bool showLogin = false;
 
+    // Runs when the page loads. If login failed, open the pop-up again to show the error
+    protected override void OnInitialized()
+    {
+        if (LoginError)
+        {
+            showLogin = true;
+        }
+    }
+
+    // Runs when the Login button is clicked
     private void OpenLogin()
     {
         showLogin = true;
     }
 
+    // Runs when X or Close is clicked
     private void CloseModal()
     {
         showLogin = false;
+        LoginError = false;
     }
 }

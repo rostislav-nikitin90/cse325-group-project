@@ -7,7 +7,13 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            @* Only shown when someone is logged in *@
+            <AuthorizeView>
+                <span>Logged in as @context.User.Identity?.Name</span>
+                <form method="post" action="logout">
+                    <button type="submit" class="btn btn-link">Logout</button>
+                </form>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
