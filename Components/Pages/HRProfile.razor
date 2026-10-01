@@ -1,7 +1,156 @@
 @page "/hr-profile"
+@rendermode InteractiveServer
 
 <PageTitle>HR Profile</PageTitle>
 
 <h1>HR Profile</h1>
 
-<p>HR user account management will be available here.</p>
+<div class="profile-actions"> 
+    <button class="btn btn-primary" @onclick="OpenCreateAccountModal"> 
+        Create Account 
+    </button>
+    <button class="btn btn-secondary" @onclick="OpenEditAccountModal">
+        Edit Account
+    </button>
+</div>
+
+@if (showCreateAccountModal)
+{
+    <div class="hr-modal-overlay">
+        <div class="hr-modal">
+            <div class="hr-modal-header">
+                <h2>Create Account</h2>
+            </div>
+
+            <div class="hr-modal-body">
+                <div class="form-group">
+                    <label for="create-first-name">First Name</label>
+                    <input id="create-first-name"
+                        type="text"
+                        @bind="createFirstName" />
+                </div>
+
+                <div class="form-group">
+                    <label for="create-last-name">Last Name</label>
+                    <input id="create-last-name"
+                        type="text"
+                        @bind="createLastName" />
+                </div>
+
+                <div class="form-group">
+                    <label for="create-email">Email</label>
+                    <input id="create-email"
+                        type="email"
+                        @bind="createEmail" />
+                </div>
+
+                <div class="form-group">
+                    <label for="create-password">Password</label>
+                    <input id="create-password"
+                        type="password"
+                        @bind="createPassword" />
+                </div>
+            </div>
+
+            <div class="hr-modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseCreateAccountModal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-primary">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showEditAccountModal)
+{
+    <div class="hr-modal-overlay">
+        <div class="hr-modal">
+            <div class="hr-modal-header">
+                <h2>Edit Account</h2>
+            </div>
+
+            <div class="hr-modal-body">
+                <div class="form-group">
+                    <label for="edit-first-name">First Name</label>
+                    <input id="edit-first-name"
+                        type="text"
+                        @bind="editFirstName" />
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-last-name">Last Name</label>
+                    <input id="edit-last-name"
+                        type="text"
+                        @bind="editLastName" />
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input id="edit-email"
+                        type="email"
+                        @bind="editEmail" />
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-password">Password</label>
+                    <input id="edit-password"
+                        type="password"
+                        @bind="editPassword" />
+                </div>
+            </div>
+
+            <div class="hr-modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseEditAccountModal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-primary">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showCreateAccountModal = false;
+    private bool showEditAccountModal = false;
+
+    // Create Account form fields
+    private string createFirstName = string.Empty;
+    private string createLastName = string.Empty;
+    private string createEmail = string.Empty;
+    private string createPassword = string.Empty;
+
+    // Edit Account form fields
+    private string editFirstName = string.Empty;
+    private string editLastName = string.Empty;
+    private string editEmail = string.Empty;
+    private string editPassword = string.Empty;
+
+    private void OpenCreateAccountModal()
+    {
+        showCreateAccountModal = true;
+        showEditAccountModal = false;
+    }
+
+    private void CloseCreateAccountModal()
+    {
+        showCreateAccountModal = false;
+    }
+
+    private void OpenEditAccountModal()
+    {
+        showEditAccountModal = true;
+        showCreateAccountModal = false;
+    }
+
+    private void CloseEditAccountModal()
+    {
+        showEditAccountModal = false;
+    }
+}
