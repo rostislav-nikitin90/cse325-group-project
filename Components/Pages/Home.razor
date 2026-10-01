@@ -9,7 +9,7 @@
 
 <div>
     <button class="btn btn-primary" @onclick="OpenLogin">Login</button>
-    <button class="btn btn-secondary" @onclick="OpenSignup">Sign Up</button>
+    <a class="btn btn-secondary" href="hr-profile">Sign Up</a>
 </div>
 
 @if (showLogin)
@@ -41,60 +41,16 @@
     </div>
 }
 
-@if (showSignup)
-{
-    <div class="modal-backdrop show"></div>
-    <div class="modal d-block">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title fs-5">Sign Up</h2>
-                    <button class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="signupName" class="form-label">Full Name</label>
-                        <input id="signupName" type="text" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="signupEmail" class="form-label">Email</label>
-                        <input id="signupEmail" type="email" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="signupPassword" class="form-label">Password</label>
-                        <input id="signupPassword" type="password" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
-                        <input id="signupConfirmPassword" type="password" class="form-control" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseModal">Close</button>
-                    <button class="btn btn-primary">Sign Up</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
 @code {
     private bool showLogin = false;
-    private bool showSignup = false;
 
     private void OpenLogin()
     {
         showLogin = true;
     }
 
-    private void OpenSignup()
-    {
-        showSignup = true;
-    }
-
     private void CloseModal()
     {
         showLogin = false;
-        showSignup = false;
     }
 }
