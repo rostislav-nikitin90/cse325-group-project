@@ -32,4 +32,58 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+
+// --- Quick Database & Auth Connection Test ---
+using (var scope = app.Services.CreateScope())
+{
+    var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+
+    Console.WriteLine("\n================ TESTING HR USER CREATION & AUTH ================");
+    try
+    {
+        // 1. Check if the test HR user already exists
+        var existingUser = await authService.GetHrByEmailAsync("james.friday@ems.com");
+        if (existingUser == null)
+        {
+            Console.WriteLine("[INFO] Creating HR user: James Friday (ID: 5)...");
+            bool created = await authService.CreateHrUserAsync(
+                hrId: 5,
+                firstName: "James",
+                lastName: "Friday",
+                email: "james.friday@ems.com",
+                plaintextPassword: "Jerobin$12"
+            );
+
+            if (created)
+            {
+                Console.WriteLine("[SUCCESS] HR user created and password hashed with BCrypt!");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"[INFO] HR user already exists in database (HR ID: {existingUser.HrId}). Skipping creation.");
+        }
+
+        // 2. Test authenticating with the new HR user's credentials
+        Console.WriteLine("[INFO] Verifying authentication with plain password 'Jerobin$12'...");
+        var authenticatedUser = await authService.AuthenticateAsync("james.friday@ems.com", "Jerobin$12");
+
+        if (authenticatedUser != null)
+        {
+            Console.WriteLine($"[SUCCESS] Authentication PASSED!");
+            Console.WriteLine($"Logged in as: {authenticatedUser.FirstName} {authenticatedUser.LastName} ({authenticatedUser.Email}), HR ID: {authenticatedUser.HrId}");
+        }
+        else
+        {
+            Console.WriteLine("[FAILED] Authentication returned null.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[ERROR] Database operation failed: {ex.Message}");
+    }
+    Console.WriteLine("=================================================================\n");
+}
+
+
 app.Run();
