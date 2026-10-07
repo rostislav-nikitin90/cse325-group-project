@@ -1,9 +1,148 @@
 @page "/directory"
+@rendermode InteractiveServer
 @* Only logged in users can open this page *@
 @attribute [Authorize]
+
+@using cse325_group_project.Models
+@using cse325_group_project.Services
+
+@inject IEmployeeService EmployeeService
 
 <PageTitle>Employee Directory</PageTitle>
 
 <h1>Employee Directory</h1>
 
-<p>Employee records will be displayed here.</p>
+<button class="btn btn-primary">
+    Create New Record
+</button>
+
+@if (employees == null)
+{
+    <p>Loading employees...</p>
+}
+else
+{
+    <table class="employee-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Position</th>
+            <th></th>
+        </tr>
+        </thead>
+
+        <tbody>
+        @foreach (var employee in employees)
+        {
+            <tr>
+                <td>@employee.EmployeeId</td>
+                <td>@employee.FirstName</td>
+                <td>@employee.LastName</td>
+                <td>@employee.Email</td>
+                <td>@employee.Position</td>
+
+                <td>
+                    <button class="employee-action-button"
+                            title="Details"
+                            aria-label="View Employee Details"
+                            @onclick="() => OpenDetails(employee)">
+                        <span class="white-info">&#x2139;</span>
+                    </button>
+
+                    <button class="employee-action-button"
+                            title="Edit"
+                            aria-label="Edit Employee">
+                        <span class="white-pencil">&#x270E;</span>
+                    </button>
+
+                    <button class="employee-action-button"
+                            title="Delete"
+                            aria-label="Delete Employee">
+                        <span class="white-close">&#x2716;</span>
+                    </button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showDetailsModal && selectedEmployee != null)
+{
+    <div class="employee-modal-overlay">
+        <div class="employee-modal">
+
+            <div class="employee-modal-header">
+                <h2>Employee Details</h2>
+            </div>
+
+            <div class="employee-modal-body">
+
+                <p><strong>ID:</strong> @selectedEmployee.EmployeeId</p>
+
+                <p><strong>First Name:</strong>
+                    @selectedEmployee.FirstName</p>
+
+                <p><strong>Last Name:</strong>
+                    @selectedEmployee.LastName</p>
+
+                <p><strong>Email:</strong>
+                    @selectedEmployee.Email</p>
+
+                <p><strong>Position:</strong>
+                    @selectedEmployee.Position</p>
+
+                <p><strong>Department:</strong>
+                    @selectedEmployee.Department</p>
+
+                <p><strong>Status:</strong>
+                    @selectedEmployee.Status</p>
+
+                <p><strong>Start Date:</strong>
+                    @selectedEmployee.StartDate.ToShortDateString()</p>
+
+                <p><strong>Responsibilities:</strong></p>
+
+                <p>@selectedEmployee.Responsibilities</p>
+
+                <div class="employee-modal-footer">
+                    <button class="btn btn-primary"
+                            @onclick="CloseDetails">
+                        OK
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    private List<Employee>? employees;
+
+    private Employee? selectedEmployee;
+
+    private bool showDetailsModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        employees =
+            await EmployeeService.GetAllEmployeesAsync();
+    }
+
+    private void OpenDetails(Employee employee)
+    {
+        selectedEmployee = employee;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetails()
+    {
+        showDetailsModal = false;
+        selectedEmployee = null;
+    }
+}
