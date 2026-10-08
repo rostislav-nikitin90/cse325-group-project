@@ -1,0 +1,15 @@
+@page "/directory/delete/{Id:int}"
+
+<PageTitle>Delete Employee</PageTitle>
+
+<h1>Delete Employee</h1>
+
+<p>The confirmation for deleting employee #@Id will go here.</p>
+
+<a class="btn btn-secondary" href="directory">Back to Directory</a>
+
+@code {
+    // Employee ID from the address bar, e.g. /directory/delete/5
+    [Parameter]
+    public int Id { get; set; }
+}

@@ -19,4 +19,7 @@ public class Employee
     public DateTime StartDate { get; set; }
 
     public string Responsibilities { get; set; } = string.Empty;
+
+    // First and last name together, used in button labels for screen readers
+    public string FullName => $"{FirstName} {LastName}".Trim();
 }

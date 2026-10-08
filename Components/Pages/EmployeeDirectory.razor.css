@@ -61,6 +61,15 @@
     font-size: 16px;
 }
 
+/* Edit and Delete are links, so center the icon like the Details button */
+a.employee-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    text-decoration: none;
+}
+
 .employee-action-button:hover {
     opacity: 0.9;
 }
@@ -90,7 +99,9 @@
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 
-    overflow: hidden;
+    /* Scroll inside the modal when the form is taller than the screen */
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 /* Modal header */
