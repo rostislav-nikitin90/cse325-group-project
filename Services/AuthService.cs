@@ -5,21 +5,35 @@ using Microsoft.Data.SqlClient;
 
 namespace cse325_group_project.Services;
 
-// Service contract for handling HR user authentication, creation, and database retrieval.
+// Service contract for handling HR user authentication, creation, update,
+// and database retrieval.
 public interface IAuthService
 {
     // Validates user credentials against the database and cryptographic password hash.
     Task<HrUser?> AuthenticateAsync(string email, string password);
 
     // Creates and inserts a new HR user record into the database with a hashed password.
-    Task<bool> CreateHrUserAsync(int hrId, string firstName, string lastName, string email, string plaintextPassword);
+    Task<bool> CreateHrUserAsync(
+        int hrId,
+        string firstName,
+        string lastName,
+        string email,
+        string plaintextPassword);
 
-    // Retrieves an HR user record from Azure SQL Database by their email address.
+    // Updates an existing HR user record.
+    Task<bool> UpdateHrUserAsync(
+        int hrId,
+        string firstName,
+        string lastName,
+        string email,
+        string plaintextPassword);
+
+    // Retrieves an HR user record from Azure SQL Database by email address.
     Task<HrUser?> GetHrByEmailAsync(string email);
 }
 
-// Service responsible for authenticating and creating HR users against the Azure SQL database.
-// Executes parameterized queries to prevent SQL injection and hashes passwords via BCrypt.
+// Service responsible for authenticating and managing HR users against
+// the Azure SQL database.
 public class AuthService : IAuthService
 {
     private readonly IDbConnectionFactory _connectionFactory;
@@ -37,68 +51,165 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    // Authenticates an HR user by querying the user record by email and comparing
-    // the provided password with the stored BCrypt hash.
+    // Authenticates an HR user by querying the user record by email and
+    // comparing the provided password with the stored BCrypt hash.
     public async Task<HrUser?> AuthenticateAsync(string email, string password)
     {
         var user = await GetHrByEmailAsync(email);
+
         if (user == null)
         {
-            _logger.LogWarning("Authentication failed: User with email {Email} not found.", email);
+            _logger.LogWarning(
+                "Authentication failed: User with email {Email} not found.",
+                email);
+
             return null;
         }
 
-        bool isValid = _passwordHasher.VerifyPassword(password, user.PasswordHash);
+        bool isValid =
+            _passwordHasher.VerifyPassword(password, user.PasswordHash);
+
         if (!isValid)
         {
-            _logger.LogWarning("Authentication failed: Invalid credentials for {Email}.", email);
+            _logger.LogWarning(
+                "Authentication failed: Invalid credentials for {Email}.",
+                email);
+
             return null;
         }
 
-        _logger.LogInformation("Authentication succeeded for {Email}.", email);
+        _logger.LogInformation(
+            "Authentication succeeded for {Email}.",
+            email);
+
         return user;
     }
 
-    // Hashes the plaintext password and inserts the new HR user record into [dbo].[hr].
-    public async Task<bool> CreateHrUserAsync(int hrId, string firstName, string lastName, string email, string plaintextPassword)
+    // Hashes the plaintext password and inserts the new HR user record.
+    public async Task<bool> CreateHrUserAsync(
+        int hrId,
+        string firstName,
+        string lastName,
+        string email,
+        string plaintextPassword)
     {
-        // Hash password using BCrypt before storing
-        string passwordHash = _passwordHasher.HashPassword(plaintextPassword);
+        string passwordHash =
+            _passwordHasher.HashPassword(plaintextPassword);
 
-        await using var connection = _connectionFactory.CreateConnection();
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
         await connection.OpenAsync();
 
         const string query = @"
-            INSERT INTO dbo.hr (hr_id, first_name, last_name, email, password)
-            VALUES (@HrId, @FirstName, @LastName, @Email, @Password)";
+            INSERT INTO dbo.hr
+            (
+                hr_id,
+                first_name,
+                last_name,
+                email,
+                password
+            )
+            VALUES
+            (
+                @HrId,
+                @FirstName,
+                @LastName,
+                @Email,
+                @Password
+            )";
 
-        await using var command = new SqlCommand(query, connection);
+        await using var command =
+            new SqlCommand(query, connection);
+
         command.Parameters.Add("@HrId", SqlDbType.Int).Value = hrId;
         command.Parameters.Add("@FirstName", SqlDbType.VarChar, 50).Value = firstName.Trim();
         command.Parameters.Add("@LastName", SqlDbType.VarChar, 50).Value = lastName.Trim();
         command.Parameters.Add("@Email", SqlDbType.VarChar, 100).Value = email.Trim();
         command.Parameters.Add("@Password", SqlDbType.VarChar, 255).Value = passwordHash;
 
-        int rowsAffected = await command.ExecuteNonQueryAsync();
-        _logger.LogInformation("Successfully created HR user {Email} with ID {HrId}.", email, hrId);
+        int rowsAffected =
+            await command.ExecuteNonQueryAsync();
+
+        _logger.LogInformation(
+            "Successfully created HR user {Email} with ID {HrId}.",
+            email,
+            hrId);
+
         return rowsAffected > 0;
     }
 
-    // Executes a parameterized query to fetch an HR user record from [dbo].[hr] by email.
-    public async Task<HrUser?> GetHrByEmailAsync(string email)
+    // Updates an existing HR user record.
+    public async Task<bool> UpdateHrUserAsync(
+        int hrId,
+        string firstName,
+        string lastName,
+        string email,
+        string plaintextPassword)
     {
-        await using var connection = _connectionFactory.CreateConnection();
+        string passwordHash =
+            _passwordHasher.HashPassword(plaintextPassword);
+
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
         await connection.OpenAsync();
 
         const string query = @"
-            SELECT hr_id, first_name, last_name, email, password
+            UPDATE dbo.hr
+            SET
+                first_name = @FirstName,
+                last_name = @LastName,
+                email = @Email,
+                password = @Password
+            WHERE hr_id = @HrId";
+
+        await using var command =
+            new SqlCommand(query, connection);
+
+        command.Parameters.Add("@HrId", SqlDbType.Int).Value = hrId;
+        command.Parameters.Add("@FirstName", SqlDbType.VarChar, 50).Value = firstName.Trim();
+        command.Parameters.Add("@LastName", SqlDbType.VarChar, 50).Value = lastName.Trim();
+        command.Parameters.Add("@Email", SqlDbType.VarChar, 100).Value = email.Trim();
+        command.Parameters.Add("@Password", SqlDbType.VarChar, 255).Value = passwordHash;
+
+        int rowsAffected =
+            await command.ExecuteNonQueryAsync();
+
+        _logger.LogInformation(
+            "Successfully updated HR user {Email} with ID {HrId}.",
+            email,
+            hrId);
+
+        return rowsAffected > 0;
+    }
+
+    // Executes a parameterized query to fetch an HR user record from dbo.hr by email.
+    public async Task<HrUser?> GetHrByEmailAsync(string email)
+    {
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT
+                hr_id,
+                first_name,
+                last_name,
+                email,
+                password
             FROM dbo.hr
             WHERE email = @Email";
 
-        await using var command = new SqlCommand(query, connection);
+        await using var command =
+            new SqlCommand(query, connection);
+
         command.Parameters.Add("@Email", SqlDbType.VarChar, 100).Value = email.Trim();
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader =
+            await command.ExecuteReaderAsync();
+
         if (await reader.ReadAsync())
         {
             return new HrUser

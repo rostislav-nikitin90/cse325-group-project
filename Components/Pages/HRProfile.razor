@@ -1,5 +1,11 @@
 @page "/hr-profile"
 @rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using cse325_group_project.Models
+@using cse325_group_project.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthService AuthService
 
 <PageTitle>HR Profile</PageTitle>
 
@@ -26,43 +32,66 @@
             </div>
 
             <div class="hr-modal-body">
-                <div class="form-group">
-                    <label for="create-first-name">First Name</label>
-                    <input id="create-first-name"
-                        type="text"
-                        @bind="createFirstName" />
-                </div>
+                <EditForm Model="createModel"
+                        OnValidSubmit="SubmitCreateAccount">
 
-                <div class="form-group">
-                    <label for="create-last-name">Last Name</label>
-                    <input id="create-last-name"
-                        type="text"
-                        @bind="createLastName" />
-                </div>
+                    <DataAnnotationsValidator />
 
-                <div class="form-group">
-                    <label for="create-email">Email</label>
-                    <input id="create-email"
-                        type="email"
-                        @bind="createEmail" />
-                </div>
+                    <div class="form-group">
+                        <label>HR ID</label>
+                        <InputNumber class="form-control"
+                                    @bind-Value="createModel.HrId"
+                                    ParsingErrorMessage="The HR ID field must be a number." />
+                        <ValidationMessage For="@(() => createModel.HrId)" />
+                    </div>
 
-                <div class="form-group">
-                    <label for="create-password">Password</label>
-                    <input id="create-password"
-                        type="password"
-                        @bind="createPassword" />
-                </div>
-            </div>
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <InputText class="form-control"
+                                @bind-Value="createModel.FirstName" />
+                        <ValidationMessage For="@(() => createModel.FirstName)" />
+                    </div>
 
-            <div class="hr-modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseCreateAccountModal">
-                    Cancel
-                </button>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <InputText class="form-control"
+                                @bind-Value="createModel.LastName" />
+                        <ValidationMessage For="@(() => createModel.LastName)" />
+                    </div>
 
-                <button class="btn btn-primary">
-                    Submit
-                </button>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <InputText class="form-control"
+                                @bind-Value="createModel.Email" />
+                        <ValidationMessage For="@(() => createModel.Email)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <InputText type="password"
+                                class="form-control"
+                                @bind-Value="createModel.Password" />
+                        <ValidationMessage For="@(() => createModel.Password)" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(createMessage))
+                    {
+                        <p>@createMessage</p>
+                    }
+
+                    <div class="hr-modal-footer">
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="CloseCreateAccountModal">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Submit
+                        </button>
+                    </div>
+                </EditForm>
             </div>
         </div>
     </div>
@@ -77,83 +106,274 @@
             </div>
 
             <div class="hr-modal-body">
-                <div class="form-group">
-                    <label for="edit-first-name">First Name</label>
-                    <input id="edit-first-name"
-                        type="text"
-                        @bind="editFirstName" />
-                </div>
+                <EditForm Model="editModel"
+                        OnValidSubmit="SubmitEditAccount">
 
-                <div class="form-group">
-                    <label for="edit-last-name">Last Name</label>
-                    <input id="edit-last-name"
-                        type="text"
-                        @bind="editLastName" />
-                </div>
+                    <DataAnnotationsValidator />
 
-                <div class="form-group">
-                    <label for="edit-email">Email</label>
-                    <input id="edit-email"
-                        type="email"
-                        @bind="editEmail" />
-                </div>
+                    <div class="form-group">
+                        <label>HR ID</label>
 
-                <div class="form-group">
-                    <label for="edit-password">Password</label>
-                    <input id="edit-password"
-                        type="password"
-                        @bind="editPassword" />
-                </div>
-            </div>
+                        <input class="form-control"
+                            value="@editModel.HrId"
+                            readonly />
+                    </div>
 
-            <div class="hr-modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseEditAccountModal">
-                    Cancel
-                </button>
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <InputText class="form-control"
+                                @bind-Value="editModel.FirstName" />
+                        <ValidationMessage For="@(() => editModel.FirstName)" />
+                    </div>
 
-                <button class="btn btn-primary">
-                    Submit
-                </button>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <InputText class="form-control"
+                                @bind-Value="editModel.LastName" />
+                        <ValidationMessage For="@(() => editModel.LastName)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <InputText class="form-control"
+                                @bind-Value="editModel.Email" />
+                        <ValidationMessage For="@(() => editModel.Email)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <InputText type="password"
+                                class="form-control"
+                                @bind-Value="editModel.Password" />
+                        <ValidationMessage For="@(() => editModel.Password)" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(editMessage))
+                    {
+                        <p>@editMessage</p>
+                    }
+
+                    <div class="hr-modal-footer">
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="CloseEditAccountModal">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Submit
+                        </button>
+                    </div>
+                </EditForm>
             </div>
         </div>
     </div>
 }
 
+@if (showSuccessModal)
+{
+    <div class="hr-modal-overlay">
+        <div class="hr-modal">
+
+            <div class="hr-modal-header">
+                <h2>@successTitle</h2>
+
+                <button class="modal-close-button"
+                        @onclick="CloseSuccessModal">
+                    ×
+                </button>
+            </div>
+
+            <div class="hr-modal-body">
+
+                <p>
+                    HR ID:
+                    <strong>@successModel.HrId</strong>
+                </p>
+
+                <p>
+                    First Name:
+                    <strong>@successModel.FirstName</strong>
+                </p>
+
+                <p>
+                    Last Name:
+                    <strong>@successModel.LastName</strong>
+                </p>
+
+                <p>
+                    Email:
+                    <strong>@successModel.Email</strong>
+                </p>
+
+                <div class="hr-modal-footer">
+                    <button class="btn btn-primary"
+                            @onclick="CloseSuccessModal">
+                        OK
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+}
+
 @code {
+    // Controls visibility of the Create Account modal.
     private bool showCreateAccountModal = false;
+    // Controls visibility of the Edit Account modal.
     private bool showEditAccountModal = false;
+    // Controls visibility of the success confirmation modal.
+    private bool showSuccessModal = false;
 
-    // Create Account form fields
-    private string createFirstName = string.Empty;
-    private string createLastName = string.Empty;
-    private string createEmail = string.Empty;
-    private string createPassword = string.Empty;
+    // Stores the title displayed in the success modal.
+    private string successTitle = string.Empty;
+    // Stores account information displayed in the success modal.
+    private HrProfileFormModel successModel = new();
 
-    // Edit Account form fields
-    private string editFirstName = string.Empty;
-    private string editLastName = string.Empty;
-    private string editEmail = string.Empty;
-    private string editPassword = string.Empty;
+    // Stores user input for the Create Account form.
+    private HrProfileFormModel createModel = new();
+    // Stores user input for the Edit Account form.
+    private HrProfileFormModel editModel = new();
 
+    // Displays status messages for Create Account operations.
+    private string? createMessage;
+
+    // Displays status messages for Edit Account operations.
+    private string? editMessage;
+
+    // Opens the Create Account modal.
     private void OpenCreateAccountModal()
     {
         showCreateAccountModal = true;
         showEditAccountModal = false;
     }
 
+    // Closes the Create Account modal.
     private void CloseCreateAccountModal()
     {
         showCreateAccountModal = false;
     }
 
-    private void OpenEditAccountModal()
+    // Retrieves the currently authenticated HR user
+    // and opens the Edit Account modal with existing account data.
+    private async Task OpenEditAccountModal()
     {
+        // Retrieve the current user's authentication information.
+        var authState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        // Extract the authenticated user's email address.
+        var email =
+            authState.User.FindFirst(
+                System.Security.Claims.ClaimTypes.Email)?.Value;
+
+        if (!string.IsNullOrEmpty(email))
+        {
+            // Load the HR account associated with the authenticated email.
+            var user =
+                await AuthService.GetHrByEmailAsync(email);
+
+            if (user != null)
+            {
+                // Populate the Edit Account form with existing account data.
+                editModel.HrId = user.HrId;
+                editModel.FirstName = user.FirstName;
+                editModel.LastName = user.LastName;
+                editModel.Email = user.Email;
+            }
+        }
+
         showEditAccountModal = true;
         showCreateAccountModal = false;
     }
 
+    // Closes the Edit Account modal.
     private void CloseEditAccountModal()
     {
         showEditAccountModal = false;
+    }
+
+    // Closes the success confirmation modal.
+    private void CloseSuccessModal()
+    {
+        showSuccessModal = false;
+    }
+
+    // Validates and creates a new HR account in the database.
+    private async Task SubmitCreateAccount()
+    {
+        bool created = await AuthService.CreateHrUserAsync(
+            createModel.HrId,
+            createModel.FirstName,
+            createModel.LastName,
+            createModel.Email,
+            createModel.Password);
+
+        if (created)
+        {
+            successTitle =
+                "Your HR Account has been successfully created";
+
+            // Store submitted account information for display
+            // in the success confirmation modal.
+            successModel = new HrProfileFormModel
+            {
+                HrId = createModel.HrId,
+                FirstName = createModel.FirstName,
+                LastName = createModel.LastName,
+                Email = createModel.Email
+            };
+
+            // Close the Create Account modal and show
+            // the success confirmation modal.
+            showCreateAccountModal = false;
+            showSuccessModal = true;
+
+            // Reset the form for future account creation.
+            createModel = new();
+        }
+        else
+        {
+            createMessage = "Unable to create account.";
+        }
+    }
+
+    // Updates the current HR account in the database.
+    private async Task SubmitEditAccount()
+    {
+        bool updated = await AuthService.UpdateHrUserAsync(
+            editModel.HrId,
+            editModel.FirstName,
+            editModel.LastName,
+            editModel.Email,
+            editModel.Password);
+
+        if (updated)
+        {
+            successTitle =
+                "Your HR Account has been successfully updated";
+
+            // Store updated account information for display
+            // in the success confirmation modal.
+            successModel = new HrProfileFormModel
+            {
+                HrId = editModel.HrId,
+                FirstName = editModel.FirstName,
+                LastName = editModel.LastName,
+                Email = editModel.Email
+            };
+
+            // Close the Edit Account modal and show
+            // the success confirmation modal.
+            showEditAccountModal = false;
+            showSuccessModal = true;
+        }
+        else
+        {
+            editMessage = "Unable to update account.";
+        }
     }
 }

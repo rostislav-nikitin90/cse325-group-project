@@ -30,6 +30,11 @@
                         <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
                     </div>
                     <div class="modal-body">
+                        @* Only shown when a logged out user tried to open a page that needs login *@
+                        @if (ReturnUrl != null)
+                        {
+                            <div class="alert alert-warning">Please log in first to access that page.</div>
+                        }
                         @* Only shown after a failed login *@
                         @if (LoginError)
                         {
@@ -59,13 +64,17 @@
     [SupplyParameterFromQuery]
     private bool LoginError { get; set; }
 
+    // Reads ?ReturnUrl=... from the address bar (the page the user tried to open)
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
     // true = pop-up is showing, false = pop-up is hidden
     private bool showLogin = false;
 
-    // Runs when the page loads. If login failed, open the pop-up again to show the error
+    // Runs when the page loads. Opens the pop-up if there is a message to show
     protected override void OnInitialized()
     {
-        if (LoginError)
+        if (LoginError || ReturnUrl != null)
         {
             showLogin = true;
         }
@@ -82,5 +91,6 @@
     {
         showLogin = false;
         LoginError = false;
+        ReturnUrl = null;
     }
 }

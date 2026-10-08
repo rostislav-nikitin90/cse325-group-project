@@ -1,46 +1,55 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using cse325_group_project.Data;
 using cse325_group_project.Models;
-using Microsoft.Data.SqlClient;
 
 namespace cse325_group_project.Services;
 
-// Service contract for reading employee records from the database.
 public interface IEmployeeService
 {
-    // Retrieves every employee record, sorted by last name then first name.
-    Task<IReadOnlyList<Employee>> GetAllEmployeesAsync();
+    Task<List<Employee>> GetAllEmployeesAsync();
 }
 
-// Service responsible for reading employee records from the Azure SQL database.
 public class EmployeeService : IEmployeeService
 {
-    // NOTE: table and column names are assumed - confirm against the real [dbo].[employee] table.
-    private const string GetAllQuery = @"
-        SELECT employee_id, first_name, last_name, email, department
-        FROM dbo.employee
-        ORDER BY last_name, first_name";
-
     private readonly IDbConnectionFactory _connectionFactory;
     private readonly ILogger<EmployeeService> _logger;
 
-    // Initializes a new instance of the EmployeeService class.
     public EmployeeService(IDbConnectionFactory connectionFactory, ILogger<EmployeeService> logger)
     {
         _connectionFactory = connectionFactory;
         _logger = logger;
     }
 
-    // Executes a query to fetch all employee records from [dbo].[employee].
-    public async Task<IReadOnlyList<Employee>> GetAllEmployeesAsync()
+    public async Task<List<Employee>> GetAllEmployeesAsync()
     {
-        await using var connection = _connectionFactory.CreateConnection();
+        List<Employee> employees = new();
+
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
         await connection.OpenAsync();
 
-        await using var command = new SqlCommand(GetAllQuery, connection);
-        await using var reader = await command.ExecuteReaderAsync();
+        const string query = @"
+            SELECT
+                employee_id,
+                first_name,
+                last_name,
+                email,
+                position,
+                department,
+                status,
+                start_date,
+                responsibilities
+            FROM dbo.employee
+            ORDER BY employee_id";
 
-        var employees = new List<Employee>();
+        await using var command =
+            new SqlCommand(query, connection);
+
+        await using var reader =
+            await command.ExecuteReaderAsync();
+
         while (await reader.ReadAsync())
         {
             employees.Add(MapEmployee(reader));
@@ -50,23 +59,29 @@ public class EmployeeService : IEmployeeService
         return employees;
     }
 
-    // Converts one database row into an Employee. Optional columns may be NULL.
-    public static Employee MapEmployee(IDataRecord record)
+    // Converts one database row into an Employee (public so it can be tested without a database)
+    public static Employee MapEmployee(IDataRecord reader)
     {
         return new Employee
         {
-            EmployeeId = record.GetInt32(record.GetOrdinal("employee_id")),
-            FirstName = record.GetString(record.GetOrdinal("first_name")),
-            LastName = record.GetString(record.GetOrdinal("last_name")),
-            Email = record.GetString(record.GetOrdinal("email")),
-            Department = GetNullableString(record, "department")
+            EmployeeId =
+                reader.GetInt32(reader.GetOrdinal("employee_id")),
+            FirstName =
+                reader.GetString(reader.GetOrdinal("first_name")),
+            LastName =
+                reader.GetString(reader.GetOrdinal("last_name")),
+            Email =
+                reader.GetString(reader.GetOrdinal("email")),
+            Position =
+                reader.GetString(reader.GetOrdinal("position")),
+            Department =
+                reader.GetString(reader.GetOrdinal("department")),
+            Status =
+                reader.GetString(reader.GetOrdinal("status")),
+            StartDate =
+                reader.GetDateTime(reader.GetOrdinal("start_date")),
+            Responsibilities =
+                reader.GetString(reader.GetOrdinal("responsibilities"))
         };
-    }
-
-    // Reads a string column that may be NULL in the database.
-    private static string? GetNullableString(IDataRecord record, string column)
-    {
-        int ordinal = record.GetOrdinal(column);
-        return record.IsDBNull(ordinal) ? null : record.GetString(ordinal);
     }
 }

@@ -1,7 +1,11 @@
 @page "/directory"
-@attribute [StreamRendering]
+@rendermode InteractiveServer
+@* Only logged in users can open this page *@
+@attribute [Authorize]
+
 @using cse325_group_project.Models
 @using cse325_group_project.Services
+
 @inject IEmployeeService EmployeeService
 @inject ILogger<EmployeeDirectory> Logger
 
@@ -9,11 +13,10 @@
 
 <h1>Employee Directory</h1>
 
-<div class="mb-3">
-    <a class="btn btn-primary" href="directory/add">Add Employee</a>
-</div>
+<a class="btn btn-primary" href="directory/add">
+    Create New Record
+</a>
 
-@* Anyone can see this list, no login needed *@
 @if (loadFailed)
 {
     <div class="alert alert-danger" role="alert">
@@ -22,7 +25,7 @@
 }
 else if (employees == null)
 {
-    <p role="status"><em>Loading employees...</em></p>
+    <p role="status">Loading employees...</p>
 }
 else if (employees.Count == 0)
 {
@@ -30,55 +33,140 @@ else if (employees.Count == 0)
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <caption>@employees.Count employee(s)</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Department</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var employee in employees)
-                {
-                    <tr>
-                        <th scope="row">@employee.FullName</th>
-                        <td>@employee.Department</td>
-                        <td><a href="mailto:@employee.Email">@employee.Email</a></td>
-                        <td class="text-nowrap">
-                            <a class="btn btn-sm btn-secondary" href="directory/edit/@employee.EmployeeId"
-                               aria-label="Edit @employee.FullName">Edit</a>
-                            <a class="btn btn-sm btn-danger" href="directory/delete/@employee.EmployeeId"
-                               aria-label="Delete @employee.FullName">Delete</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <table class="employee-table">
+        <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">First Name</th>
+            <th scope="col">Last Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Position</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+        </thead>
+
+        <tbody>
+        @foreach (var employee in employees)
+        {
+            <tr>
+                <td>@employee.EmployeeId</td>
+                <td>@employee.FirstName</td>
+                <td>@employee.LastName</td>
+                <td>@employee.Email</td>
+                <td>@employee.Position</td>
+
+                <td>
+                    <button class="employee-action-button"
+                            title="Details"
+                            aria-label="View details for @employee.FullName"
+                            @onclick="() => OpenDetails(employee)">
+                        <span class="white-info">&#x2139;</span>
+                    </button>
+
+                    <a class="employee-action-button"
+                       href="directory/edit/@employee.EmployeeId"
+                       title="Edit"
+                       aria-label="Edit @employee.FullName">
+                        <span class="white-pencil">&#x270E;</span>
+                    </a>
+
+                    <a class="employee-action-button"
+                       href="directory/delete/@employee.EmployeeId"
+                       title="Delete"
+                       aria-label="Delete @employee.FullName">
+                        <span class="white-close">&#x2716;</span>
+                    </a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showDetailsModal && selectedEmployee != null)
+{
+    <div class="employee-modal-overlay">
+        <div class="employee-modal">
+
+            <div class="employee-modal-header">
+                <h2>Employee Details</h2>
+            </div>
+
+            <div class="employee-modal-body">
+
+                <p><strong>ID:</strong> @selectedEmployee.EmployeeId</p>
+
+                <p><strong>First Name:</strong>
+                    @selectedEmployee.FirstName</p>
+
+                <p><strong>Last Name:</strong>
+                    @selectedEmployee.LastName</p>
+
+                <p><strong>Email:</strong>
+                    @selectedEmployee.Email</p>
+
+                <p><strong>Position:</strong>
+                    @selectedEmployee.Position</p>
+
+                <p><strong>Department:</strong>
+                    @selectedEmployee.Department</p>
+
+                <p><strong>Status:</strong>
+                    @selectedEmployee.Status</p>
+
+                <p><strong>Start Date:</strong>
+                    @selectedEmployee.StartDate.ToShortDateString()</p>
+
+                <p><strong>Responsibilities:</strong></p>
+
+                <p>@selectedEmployee.Responsibilities</p>
+
+                <div class="employee-modal-footer">
+                    <button class="btn btn-primary"
+                            @onclick="CloseDetails">
+                        OK
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
     </div>
 }
 
 @code {
-    // null = still loading
-    private IReadOnlyList<Employee>? employees;
+    private List<Employee>? employees;
+
+    private Employee? selectedEmployee;
+
+    private bool showDetailsModal;
 
     // true = the database could not be reached
     private bool loadFailed;
 
-    // Runs when the page loads: get every employee from the database
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            employees = await EmployeeService.GetAllEmployeesAsync();
+            employees =
+                await EmployeeService.GetAllEmployeesAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load employee directory.");
             loadFailed = true;
         }
+    }
+
+    private void OpenDetails(Employee employee)
+    {
+        selectedEmployee = employee;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetails()
+    {
+        showDetailsModal = false;
+        selectedEmployee = null;
     }
 }

@@ -19,8 +19,12 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 // Login cookie: remembers who is logged in
+// If a logged out user opens a page that needs login, send them to the home page
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/";
+    });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
