@@ -1,0 +1,15 @@
+@page "/directory/edit/{Id:int}"
+
+<PageTitle>Edit Employee</PageTitle>
+
+<h1>Edit Employee</h1>
+
+<p>The form for editing employee #@Id will go here.</p>
+
+<a class="btn btn-secondary" href="directory">Back to Directory</a>
+
+@code {
+    // Employee ID from the address bar, e.g. /directory/edit/5
+    [Parameter]
+    public int Id { get; set; }
+}

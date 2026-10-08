@@ -16,6 +16,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 // Login cookie: remembers who is logged in
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

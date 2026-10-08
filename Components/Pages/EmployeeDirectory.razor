@@ -1,7 +1,84 @@
 @page "/directory"
+@attribute [StreamRendering]
+@using cse325_group_project.Models
+@using cse325_group_project.Services
+@inject IEmployeeService EmployeeService
+@inject ILogger<EmployeeDirectory> Logger
 
 <PageTitle>Employee Directory</PageTitle>
 
 <h1>Employee Directory</h1>
 
-<p>Employee records will be displayed here.</p>
+<div class="mb-3">
+    <a class="btn btn-primary" href="directory/add">Add Employee</a>
+</div>
+
+@* Anyone can see this list, no login needed *@
+@if (loadFailed)
+{
+    <div class="alert alert-danger" role="alert">
+        Sorry, the employee list could not be loaded. Please try again later.
+    </div>
+}
+else if (employees == null)
+{
+    <p role="status"><em>Loading employees...</em></p>
+}
+else if (employees.Count == 0)
+{
+    <p role="status">No employees found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <caption>@employees.Count employee(s)</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var employee in employees)
+                {
+                    <tr>
+                        <th scope="row">@employee.FullName</th>
+                        <td>@employee.Department</td>
+                        <td><a href="mailto:@employee.Email">@employee.Email</a></td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-secondary" href="directory/edit/@employee.EmployeeId"
+                               aria-label="Edit @employee.FullName">Edit</a>
+                            <a class="btn btn-sm btn-danger" href="directory/delete/@employee.EmployeeId"
+                               aria-label="Delete @employee.FullName">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    // null = still loading
+    private IReadOnlyList<Employee>? employees;
+
+    // true = the database could not be reached
+    private bool loadFailed;
+
+    // Runs when the page loads: get every employee from the database
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            employees = await EmployeeService.GetAllEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load employee directory.");
+            loadFailed = true;
+        }
+    }
+}
