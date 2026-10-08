@@ -13,9 +13,16 @@
 
 <h1>Employee Directory</h1>
 
-<a class="btn btn-primary" href="directory/add">
+<button class="btn btn-primary" @onclick="OpenCreateModal">
     Create New Record
-</a>
+</button>
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success" role="status">
+        @successMessage
+    </div>
+}
 
 @if (loadFailed)
 {
@@ -134,8 +141,157 @@ else
     </div>
 }
 
+@if (showCreateModal)
+{
+    <div class="employee-modal-overlay">
+        <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="create-employee-title">
+
+            <div class="employee-modal-header">
+                <h2 id="create-employee-title">Create New Record</h2>
+            </div>
+
+            <EditForm Model="createModel"
+                      OnValidSubmit="SubmitCreateEmployee">
+
+                <DataAnnotationsValidator />
+
+                <div class="employee-modal-body">
+
+                    <div class="mb-3">
+                        <label for="create-employee-id" class="form-label">Employee ID</label>
+                        <InputNumber id="create-employee-id"
+                                     class="form-control"
+                                     @bind-Value="createModel.EmployeeId"
+                                     ParsingErrorMessage="The Employee ID field must be a number." />
+                        <ValidationMessage For="@(() => createModel.EmployeeId)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-first-name" class="form-label">First Name</label>
+                        <InputText id="create-first-name"
+                                   class="form-control"
+                                   @bind-Value="createModel.FirstName" />
+                        <ValidationMessage For="@(() => createModel.FirstName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-last-name" class="form-label">Last Name</label>
+                        <InputText id="create-last-name"
+                                   class="form-control"
+                                   @bind-Value="createModel.LastName" />
+                        <ValidationMessage For="@(() => createModel.LastName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-email" class="form-label">Email</label>
+                        <InputText id="create-email"
+                                   type="email"
+                                   class="form-control"
+                                   @bind-Value="createModel.Email" />
+                        <ValidationMessage For="@(() => createModel.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-position" class="form-label">Position</label>
+                        <InputSelect id="create-position"
+                                     class="form-select"
+                                     @bind-Value="createModel.Position">
+                            <option value="">Select position...</option>
+                            @foreach (var option in EmployeeOptions.Positions)
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => createModel.Position)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-department" class="form-label">Department</label>
+                        <InputSelect id="create-department"
+                                     class="form-select"
+                                     @bind-Value="createModel.Department">
+                            <option value="">Select department...</option>
+                            @foreach (var option in EmployeeOptions.Departments)
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => createModel.Department)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-status" class="form-label">Status</label>
+                        <InputSelect id="create-status"
+                                     class="form-select"
+                                     @bind-Value="createModel.Status">
+                            <option value="">Select status...</option>
+                            @foreach (var option in EmployeeOptions.Statuses)
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => createModel.Status)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-start-date" class="form-label">Start Date</label>
+                        <InputDate id="create-start-date"
+                                   class="form-control"
+                                   @bind-Value="createModel.StartDate" />
+                        <ValidationMessage For="@(() => createModel.StartDate)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="create-responsibilities" class="form-label">Responsibilities</label>
+                        <InputTextArea id="create-responsibilities"
+                                       class="form-control"
+                                       rows="3"
+                                       @bind-Value="createModel.Responsibilities" />
+                        <ValidationMessage For="@(() => createModel.Responsibilities)" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(createError))
+                    {
+                        <div class="alert alert-danger" role="alert">@createError</div>
+                    }
+                </div>
+
+                <div class="employee-modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary me-2"
+                            @onclick="CloseCreateModal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary"
+                            disabled="@isSaving">
+                        Create
+                    </button>
+                </div>
+            </EditForm>
+
+        </div>
+    </div>
+}
+
 @code {
     private List<Employee>? employees;
+
+    // Controls visibility of the Create New Record modal.
+    private bool showCreateModal;
+
+    // Stores user input for the Create New Record form.
+    private EmployeeFormModel createModel = new();
+
+    // Error shown inside the Create New Record modal.
+    private string? createError;
+
+    // Shown above the table after an employee is created.
+    private string? successMessage;
+
+    // true while the new employee is being saved, so Create can't be clicked twice
+    private bool isSaving;
 
     private Employee? selectedEmployee;
 
@@ -168,5 +324,59 @@ else
     {
         showDetailsModal = false;
         selectedEmployee = null;
+    }
+
+    // Opens the Create New Record modal with an empty form.
+    private void OpenCreateModal()
+    {
+        createModel = new();
+        createError = null;
+        successMessage = null;
+        showCreateModal = true;
+    }
+
+    // Closes the Create New Record modal without saving.
+    private void CloseCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    // Runs only when every field is valid: saves the employee and adds it to the list.
+    private async Task SubmitCreateEmployee()
+    {
+        isSaving = true;
+        createError = null;
+
+        try
+        {
+            var employee = createModel.ToEmployee();
+            await EmployeeService.CreateEmployeeAsync(employee);
+
+            if (employees != null)
+            {
+                employees.Add(employee);
+                employees.Sort((a, b) => a.EmployeeId.CompareTo(b.EmployeeId));
+            }
+
+            successMessage = $"{employee.FullName} has been added.";
+            showCreateModal = false;
+        }
+        catch (DuplicateEmployeeException)
+        {
+            createError = "An employee with this ID or email already exists.";
+        }
+        catch (InvalidEmployeeValueException)
+        {
+            createError = "The database does not accept the selected Position, Department or Status. Please choose a different option.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to create employee.");
+            createError = "Unable to create the employee. Please try again.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 }

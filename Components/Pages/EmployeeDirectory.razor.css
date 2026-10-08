@@ -99,7 +99,9 @@ a.employee-action-button {
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 
-    overflow: hidden;
+    /* Scroll inside the modal when the form is taller than the screen */
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 /* Modal header */

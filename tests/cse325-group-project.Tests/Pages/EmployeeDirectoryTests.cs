@@ -20,6 +20,23 @@ public class EmployeeDirectoryTests : BunitContext
             () => Task.FromResult(new List<Employee>());
 
         public Task<List<Employee>> GetAllEmployeesAsync() => Result();
+
+        // Employees passed to CreateEmployeeAsync
+        public List<Employee> Created { get; } = [];
+
+        // Set this to make CreateEmployeeAsync fail
+        public Exception? CreateError { get; set; }
+
+        public Task CreateEmployeeAsync(Employee employee)
+        {
+            if (CreateError != null)
+            {
+                throw CreateError;
+            }
+
+            Created.Add(employee);
+            return Task.CompletedTask;
+        }
     }
 
     private readonly FakeEmployeeService _fakeService = new();
@@ -92,15 +109,6 @@ public class EmployeeDirectoryTests : BunitContext
         Assert.Empty(page.FindAll("table"));
     }
 
-    [Fact]
-    public void CreateButtonLinksToAddPage()
-    {
-        var page = Render<EmployeeDirectory>();
-
-        var create = page.Find("a.btn-primary");
-        Assert.Equal("Create New Record", create.TextContent.Trim());
-        Assert.Equal("directory/add", create.GetAttribute("href"));
-    }
 
     [Fact]
     public void EachRowHasEditAndDeleteLinksForThatEmployee()
@@ -134,6 +142,162 @@ public class EmployeeDirectoryTests : BunitContext
         Assert.Empty(page.FindAll(".employee-modal"));
     }
 
+    // Fills in every field of the Create New Record form with valid values
+    private static void FillCreateForm(IRenderedComponent<EmployeeDirectory> page, int id = 3)
+    {
+        page.Find("#create-employee-id").Change(id.ToString());
+        page.Find("#create-first-name").Change("Grace");
+        page.Find("#create-last-name").Change("Hopper");
+        page.Find("#create-email").Change("grace@ems.com");
+        page.Find("#create-position").Change("Frontend Engineer");
+        page.Find("#create-department").Change("Engineering");
+        page.Find("#create-status").Change("Active");
+        page.Find("#create-start-date").Change("2026-09-01");
+        page.Find("#create-responsibilities").Change("Writes compilers");
+    }
+
+    private IRenderedComponent<EmployeeDirectory> RenderAndOpenCreateForm()
+    {
+        ReturnSampleEmployees();
+        var page = Render<EmployeeDirectory>();
+        page.Find("button.btn-primary").Click();
+        return page;
+    }
+
+    [Fact]
+    public void CreateNewRecordButtonOpensTheForm()
+    {
+        var page = Render<EmployeeDirectory>();
+        Assert.Empty(page.FindAll("#create-employee-title"));
+
+        page.Find("button.btn-primary").Click();
+
+        Assert.Equal("Create New Record", page.Find("#create-employee-title").TextContent);
+        Assert.NotNull(page.Find("#create-responsibilities"));
+    }
+
+    [Fact]
+    public void CancelClosesTheFormWithoutSaving()
+    {
+        var page = RenderAndOpenCreateForm();
+        FillCreateForm(page);
+
+        page.Find(".employee-modal-footer button.btn-secondary").Click();
+
+        Assert.Empty(page.FindAll("#create-employee-title"));
+        Assert.Empty(_fakeService.Created);
+        Assert.Equal(2, page.FindAll("tbody tr").Count);
+    }
+
+    [Fact]
+    public void SubmittingAnEmptyFormShowsErrorsAndDoesNotSave()
+    {
+        var page = RenderAndOpenCreateForm();
+        page.Find("#create-employee-id").Change("");
+        page.Find("#create-start-date").Change("");
+
+        page.Find("form").Submit();
+
+        var errors = page.FindAll(".validation-message").Select(e => e.TextContent).ToList();
+        Assert.Contains("The Employee ID field is required.", errors);
+        Assert.Contains("The First Name field is required.", errors);
+        Assert.Contains("The Start Date field is required.", errors);
+        Assert.Contains("The Responsibilities field is required.", errors);
+        Assert.Empty(_fakeService.Created);
+        Assert.NotNull(page.Find("#create-employee-title"));
+    }
+
+    [Fact]
+    public void InvalidEmailShowsAnErrorAndDoesNotSave()
+    {
+        var page = RenderAndOpenCreateForm();
+        FillCreateForm(page);
+        page.Find("#create-email").Change("not-an-email");
+
+        page.Find("form").Submit();
+
+        Assert.Contains("The Email field is not a valid email address.", page.Markup);
+        Assert.Empty(_fakeService.Created);
+    }
+
+    [Fact]
+    public void ValidFormSavesTheEmployeeAndAddsItToTheList()
+    {
+        var page = RenderAndOpenCreateForm();
+        FillCreateForm(page);
+
+        page.Find("form").Submit();
+
+        var saved = Assert.Single(_fakeService.Created);
+        Assert.Equal(3, saved.EmployeeId);
+        Assert.Equal("Grace", saved.FirstName);
+        Assert.Equal("grace@ems.com", saved.Email);
+        Assert.Equal(new DateTime(2026, 9, 1), saved.StartDate);
+        Assert.Equal("Writes compilers", saved.Responsibilities);
+
+        Assert.Empty(page.FindAll("#create-employee-title"));
+        var rows = page.FindAll("tbody tr");
+        Assert.Equal(3, rows.Count);
+        Assert.Contains("Hopper", rows[2].TextContent);
+        Assert.Contains("Grace Hopper has been added.", page.Find(".alert-success").TextContent);
+    }
+
+    [Fact]
+    public void DuplicateIdKeepsTheFormOpenWithAMessage()
+    {
+        var page = RenderAndOpenCreateForm();
+        _fakeService.CreateError = new DuplicateEmployeeException(new Exception());
+        FillCreateForm(page, id: 1);
+
+        page.Find("form").Submit();
+
+        Assert.Contains("already exists", page.Find(".employee-modal .alert-danger").TextContent);
+        Assert.NotNull(page.Find("#create-employee-title"));
+        Assert.Equal(2, page.FindAll("tbody tr").Count);
+    }
+
+    [Fact]
+    public void DropdownsOfferOnlyTheValuesTheDatabaseAllows()
+    {
+        var page = RenderAndOpenCreateForm();
+
+        string[] OptionsOf(string id) => page.FindAll($"{id} option")
+            .Select(o => o.GetAttribute("value")!)
+            .Where(v => v != "")
+            .ToArray();
+
+        Assert.Equal(EmployeeOptions.Positions, OptionsOf("#create-position"));
+        Assert.Equal(EmployeeOptions.Departments, OptionsOf("#create-department"));
+        Assert.Equal(EmployeeOptions.Statuses, OptionsOf("#create-status"));
+    }
+
+    [Fact]
+    public void ValueRejectedByTheDatabaseKeepsTheFormOpenWithAMessage()
+    {
+        var page = RenderAndOpenCreateForm();
+        _fakeService.CreateError = new InvalidEmployeeValueException(new Exception());
+        FillCreateForm(page);
+
+        page.Find("form").Submit();
+
+        Assert.Contains("does not accept the selected Position, Department or Status",
+            page.Find(".employee-modal .alert-danger").TextContent);
+        Assert.NotNull(page.Find("#create-employee-title"));
+    }
+
+    [Fact]
+    public void DatabaseErrorKeepsTheFormOpenWithAMessage()
+    {
+        var page = RenderAndOpenCreateForm();
+        _fakeService.CreateError = new InvalidOperationException("database is down");
+        FillCreateForm(page);
+
+        page.Find("form").Submit();
+
+        Assert.Contains("Unable to create the employee", page.Find(".employee-modal .alert-danger").TextContent);
+        Assert.NotNull(page.Find("#create-employee-title"));
+    }
+
     [Fact]
     public void DirectoryPageRequiresLogin()
     {
@@ -142,7 +306,6 @@ public class EmployeeDirectoryTests : BunitContext
 
     [Theory]
     [InlineData(typeof(EmployeeDirectory), "/directory")]
-    [InlineData(typeof(AddEmployee), "/directory/add")]
     [InlineData(typeof(EditEmployee), "/directory/edit/{Id:int}")]
     [InlineData(typeof(DeleteEmployee), "/directory/delete/{Id:int}")]
     public void PagesUseTheExpectedRoutes(Type page, string route)
