@@ -13,6 +13,10 @@ public interface IEmployeeService
     // Throws DuplicateEmployeeException if the ID or email is already used,
     // or InvalidEmployeeValueException if the database rejects a value.
     Task CreateEmployeeAsync(Employee employee);
+
+    Task<Employee?> GetEmployeeByIdAsync(int employeeId);
+
+    Task UpdateEmployeeAsync(Employee employee);
 }
 
 // Thrown when the database's CHECK rules reject a value (position, department or status).
@@ -171,5 +175,108 @@ public class EmployeeService : IEmployeeService
             Responsibilities =
                 reader.GetString(reader.GetOrdinal("responsibilities"))
         };
+    }
+
+    public async Task<Employee?> GetEmployeeByIdAsync(
+        int employeeId)
+    {
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT
+                employee_id,
+                first_name,
+                last_name,
+                email,
+                position,
+                department,
+                status,
+                start_date,
+                responsibilities
+            FROM dbo.employee
+            WHERE employee_id = @EmployeeId";
+
+        await using var command =
+            new SqlCommand(query, connection);
+
+        command.Parameters.Add(
+            "@EmployeeId",
+            SqlDbType.Int).Value = employeeId;
+
+        await using var reader =
+            await command.ExecuteReaderAsync();
+
+        if (await reader.ReadAsync())
+        {
+            return MapEmployee(reader);
+        }
+
+        return null;
+    }
+
+    public async Task UpdateEmployeeAsync(
+        Employee employee)
+    {
+        await using var connection =
+            _connectionFactory.CreateConnection();
+
+        await connection.OpenAsync();
+
+        const string query = @"
+            UPDATE dbo.employee
+            SET
+                first_name = @FirstName,
+                last_name = @LastName,
+                email = @Email,
+                position = @Position,
+                department = @Department,
+                status = @Status,
+                start_date = @StartDate,
+                responsibilities = @Responsibilities
+            WHERE employee_id = @EmployeeId";
+
+        await using var command =
+            new SqlCommand(query, connection);
+
+        command.Parameters.Add("@EmployeeId",
+            SqlDbType.Int).Value =
+            employee.EmployeeId;
+
+        command.Parameters.Add("@FirstName",
+            SqlDbType.VarChar, 50).Value =
+            employee.FirstName;
+
+        command.Parameters.Add("@LastName",
+            SqlDbType.VarChar, 50).Value =
+            employee.LastName;
+
+        command.Parameters.Add("@Email",
+            SqlDbType.VarChar, 100).Value =
+            employee.Email;
+
+        command.Parameters.Add("@Position",
+            SqlDbType.VarChar, 50).Value =
+            employee.Position;
+
+        command.Parameters.Add("@Department",
+            SqlDbType.VarChar, 50).Value =
+            employee.Department;
+
+        command.Parameters.Add("@Status",
+            SqlDbType.VarChar, 20).Value =
+            employee.Status;
+
+        command.Parameters.Add("@StartDate",
+            SqlDbType.Date).Value =
+            employee.StartDate;
+
+        command.Parameters.Add("@Responsibilities",
+            SqlDbType.VarChar, 500).Value =
+            employee.Responsibilities;
+
+        await command.ExecuteNonQueryAsync();
     }
 }
