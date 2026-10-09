@@ -11,15 +11,21 @@
 
 <h1>HR Profile</h1>
 
-<div class="profile-actions"> 
-    <button class="btn btn-primary" @onclick="OpenCreateAccountModal"> 
-        Create Account 
-    </button>
-    @* Only logged in users can edit their account *@
+<div class="profile-actions">
     <AuthorizeView>
-        <button class="btn btn-secondary" @onclick="OpenEditAccountModal">
-            Edit Account
-        </button>
+        @* Logged in users only see Edit Account *@
+        <Authorized>
+            <button class="btn btn-secondary" @onclick="OpenEditAccountModal">
+                Edit Account
+            </button>
+        </Authorized>
+
+        @* Logged out users only see Create Account *@
+        <NotAuthorized>
+            <button class="btn btn-primary" @onclick="OpenCreateAccountModal">
+                Create Account
+            </button>
+        </NotAuthorized>
     </AuthorizeView>
 </div>
 

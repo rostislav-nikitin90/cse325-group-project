@@ -7,11 +7,22 @@
 
 <p>Welcome to the Employee Management System.</p>
 
-@* Login opens the pop-up, Sign Up goes to the HR Profile page *@
-<div>
-    <button class="btn btn-primary" @onclick="OpenLogin">Login</button>
-    <a class="btn btn-secondary" href="hr-profile">Sign Up</a>
-</div>
+<AuthorizeView>
+    @* Logged in users only see a Logout button *@
+    <Authorized>
+        <form method="post" action="logout">
+            <button type="submit" class="btn btn-primary">Logout</button>
+        </form>
+    </Authorized>
+
+    @* Logged out users see Login (opens the pop-up) and Sign Up (goes to the HR Profile page) *@
+    <NotAuthorized>
+        <div>
+            <button class="btn btn-primary" @onclick="OpenLogin">Login</button>
+            <a class="btn btn-secondary" href="hr-profile">Sign Up</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @* Login pop-up, only shown when showLogin is true *@
 @if (showLogin)
