@@ -1,15 +1,328 @@
 @page "/directory/edit/{Id:int}"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components
+@using cse325_group_project.Models
+@using cse325_group_project.Services
+
+@* Service used to load and update employee records. *@
+@inject IEmployeeService EmployeeService
+
+@* Used to navigate back to Employee Directory. *@
+@inject NavigationManager Navigation
 
 <PageTitle>Edit Employee</PageTitle>
 
-<h1>Edit Employee</h1>
+@if (loadFailed)
+{
+    <div class="alert alert-danger" role="alert">
+        Unable to load employee details.
+    </div>
+}
+else if (isLoading)
+{
+    <p>Loading employee...</p>
+}
+else
+{
+    <div class="edit-employee-container">
+        <div class="edit-employee-header">
+            <h1>Edit Employee</h1>
+        </div>
 
-<p>The form for editing employee #@Id will go here.</p>
+        @* Edit form for updating an existing employee record. *@
+        <EditForm Model="model"
+                FormName="EditEmployeeForm"
+                OnValidSubmit="SaveChanges">
 
-<a class="btn btn-secondary" href="directory">Back to Directory</a>
+            <DataAnnotationsValidator />
+
+            @* Employee ID is displayed for reference only.
+               It cannot be changed and is used only to identify
+               the record being updated in the database. *@
+            <div class="form-group">
+                <label for="employee-id" class="form-label">
+                    Employee ID
+                </label>
+
+                <input class="form-control"
+                    value="@model.EmployeeId"
+                    readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="first-name" class="form-label">
+                    First Name
+                </label>
+
+                <InputText id="first-name"
+                        class="form-control"
+                        @bind-Value="model.FirstName" />
+
+                <ValidationMessage For="@(() => model.FirstName)" />
+            </div>
+
+            <div class="form-group">
+                <label for="last-name" class="form-label">
+                    Last Name
+                </label>
+
+                <InputText id="last-name"
+                        class="form-control"
+                        @bind-Value="model.LastName" />
+
+                <ValidationMessage For="@(() => model.LastName)" />
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    Email
+                </label>
+
+                <InputText id="email"
+                        type="email"
+                        class="form-control"
+                        @bind-Value="model.Email" />
+
+                <ValidationMessage For="@(() => model.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="position" class="form-label">
+                    Position
+                </label>
+
+                <InputSelect id="position"
+                            class="form-select"
+                            @bind-Value="model.Position">
+
+                    <option value="">
+                        Select position...
+                    </option>
+
+                    @foreach (var option in EmployeeOptions.Positions)
+                    {
+                        <option value="@option">
+                            @option
+                        </option>
+                    }
+
+                </InputSelect>
+
+                <ValidationMessage For="@(() => model.Position)" />
+            </div>
+
+            <div class="form-group">
+                <label for="department" class="form-label">
+                    Department
+                </label>
+
+                <InputSelect id="department"
+                            class="form-select"
+                            @bind-Value="model.Department">
+
+                    <option value="">
+                        Select department...
+                    </option>
+
+                    @foreach (var option in EmployeeOptions.Departments)
+                    {
+                        <option value="@option">
+                            @option
+                        </option>
+                    }
+
+                </InputSelect>
+
+                <ValidationMessage For="@(() => model.Department)" />
+            </div>
+
+            <div class="form-group">
+                <label for="status" class="form-label">
+                    Status
+                </label>
+
+                <InputSelect id="status"
+                            class="form-select"
+                            @bind-Value="model.Status">
+
+                    <option value="">
+                        Select status...
+                    </option>
+
+                    @foreach (var option in EmployeeOptions.Statuses)
+                    {
+                        <option value="@option">
+                            @option
+                        </option>
+                    }
+
+                </InputSelect>
+
+                <ValidationMessage For="@(() => model.Status)" />
+            </div>
+
+            <div class="form-group">
+                <label for="start-date" class="form-label">
+                    Start Date
+                </label>
+
+                <InputDate id="start-date"
+                        class="form-control"
+                        @bind-Value="model.StartDate" />
+
+                <ValidationMessage For="@(() => model.StartDate)" />
+            </div>
+
+            <div class="form-group">
+                <label for="responsibilities" class="form-label">
+                    Responsibilities
+                </label>
+
+                <InputTextArea id="responsibilities"
+                            class="form-control"
+                            rows="4"
+                            @bind-Value="model.Responsibilities" />
+
+                <ValidationMessage
+                    For="@(() => model.Responsibilities)" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            @* Cancel returns to Employee Directory without saving.
+            Edit submits the form and updates the database record. *@
+            <div class="button-container">
+                <button type="button"
+                        class="btn btn-secondary"
+                        @onclick="Cancel">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="btn btn-primary"
+                        disabled="@isSaving">
+                    Edit
+                </button>
+            </div>
+        </EditForm>
+    </div>    
+}
 
 @code {
-    // Employee ID from the address bar, e.g. /directory/edit/5
+
+    // Employee ID taken from the URL.
     [Parameter]
     public int Id { get; set; }
+
+    // Stores all editable employee fields.
+    private EmployeeFormModel model = new();
+
+    // True while employee data is being loaded.
+    private bool isLoading = true;
+
+    // True if loading employee data failed.
+    private bool loadFailed;
+
+    // Prevents multiple submissions while saving.
+    private bool isSaving;
+
+    // Displays validation or save errors.
+    private string? errorMessage;
+
+    // Loads the selected employee record
+    // when the page first opens.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Retrieve employee from database.
+            var employee =
+                await EmployeeService
+                    .GetEmployeeByIdAsync(Id);
+
+            // If employee doesn't exist,
+            // return to Employee Directory.
+            if (employee == null)
+            {
+                Navigation.NavigateTo("/directory");
+                return;
+            }
+
+            // Populate the form with the
+            // employee's current values.
+            model = new EmployeeFormModel
+            {
+                EmployeeId = employee.EmployeeId,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Email = employee.Email,
+                Position = employee.Position,
+                Department = employee.Department,
+                Status = employee.Status,
+                StartDate = employee.StartDate,
+                Responsibilities = employee.Responsibilities
+            };
+        }
+        catch
+        {
+            loadFailed = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Runs when validation succeeds.
+    // Updates the employee record in the database.
+    private async Task SaveChanges()
+    {
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            // Convert validated form values
+            // into an Employee object.
+            var employee = model.ToEmployee();
+
+            // Save updated employee data.
+            await EmployeeService
+                .UpdateEmployeeAsync(employee);
+
+            Navigation.NavigateTo("/directory");
+        }
+        catch (DuplicateEmployeeException)
+        {
+            errorMessage =
+                "An employee with this email already exists.";
+        }
+        catch (InvalidEmployeeValueException)
+        {
+            errorMessage =
+                "The selected Position, Department or Status is not allowed.";
+        }
+        catch
+        {
+            errorMessage =
+                "Unable to update employee.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    // Returns to Employee Directory
+    // without saving any changes.
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/directory");
+    }
 }
